@@ -1,0 +1,169 @@
+
+# 开始构建灰色预测模型 GM(1,1)，将函数命名为 GM11
+# X0 - 原始序列，t - 原始序列个数， k - 想预测第 k 期
+
+GM11 <- function(X0,t,k){ 
+
+# 第一步，一次累加生成序列 X(1)
+
+  cat('\n')
+  cat("为弱化原始时间序列的随机性，采用累加的方式处理数据",'\n','\n')
+
+  options(scipen = 200)                   # 此处是为了能让数据常规显示，而不是使用科学记数法
+  
+  X1 <- cumsum(X0)
+
+  cat("原始序列X(0)为:",X0,'\n')
+  cat("累加序列X(1)为:",X1,'\n','\n')
+
+# 第二步，开始构造矩阵 B 和数据向量 Yn
+
+  b <- numeric(length(X0)-1)              # 初始化长度为length(X0)-1的整数部分个numeric类型且值为0的数据集b
+  n <- length(X0)-1
+                                          # n 长度为 length(X0)-1 因为需要生成MEAN（紧邻均值）生成序列 其长度少1
+  for(i in 1:n){                          # 生成 X(1) 的紧邻均值序列
+    b[i] <- -(X1[i]+X1[i+1])/2 
+    b }
+
+  D <- numeric(length(X0)-1)
+  D[ ] <- 1
+  B <- cbind(b,D)
+
+  YN <- numeric(length(X0)-1)
+  YN <- X0[2:length(X0)]
+
+# 第三步，开始计算待估参数向量 alpha2，利用最小二乘法求解，以便获得发展灰数 a 和内生控制灰数 u
+
+  alpha <- solve(t(B)%*%B)%*%t(B)%*%YN                 # 计算方法
+  alpha2 <- matrix(alpha,ncol=1)             # 将结果变成一列
+  
+  a <- alpha2[1]                             # 发展灰数
+  u <- alpha2[2]                             # 内生控制灰数
+  
+# 输出参数估计值：发展灰数 a 和内生控制灰数 u
+  
+  cat("GM(1,1)参数估计值：发展系数a =",a,"  ","灰色作用量u =",u,'\n','\n')
+
+# 第四步，开始计算 X(0) & X(1) 的预测序列
+
+  Xhat1 <- numeric(length(c(1:t)))
+  Xhat1[1] <- X1[1]                          # X(1)的预测序列中的第一个数与原始序列相同
+
+  for(i in 1:(t-1)){                         # 求解微分方程，得预测模型 Xhat1[i+1]，计算 X(1)的预测序列
+     Xhat1[i+1] <- (X0[1]-u/a)*exp(-a*i)+u/a }
+  
+  Xhat0 <- numeric(length(Xhat1))
+  Xhat0[1] <- Xhat1[1]
+
+  for(o in 2:t){                             # 把 X(1)的预测序列进行累减，求出 X(0)的预测序列  
+     Xhat0[o] <- Xhat1[o]-Xhat1[o-1] }
+
+# 输出预测序列
+
+  cat("X(1)的模拟值:",Xhat1,'\n')
+  cat("X(0)的模拟值:",Xhat0,'\n','\n')                       
+  
+  
+# 第五步，开始进行残差检验
+
+  cat("开始进行残差检验：",'\n')
+
+  e <- numeric(length(X0))
+  for(l in 1:length(X0)){
+    e[l] <- X0[l]-Xhat0[l] }                  # 计算残差序列 e（未取绝对值）
+ 
+  r_e <- numeric(length(X0))
+  for(s in 1:length(X0)){
+    r_e[s] <- (abs(e[s])/X0[s])}              # 计算相对误差序列 r_e ,相对误差 = 绝对误差/原始序列
+  
+  e_average <- sum(r_e)/(length(r_e)-1)       # 计算平均相对误差 e_average
+
+# 输出残差检验的结果
+
+  cat("  绝对残差：",'\n',"         ",round(abs(e),6),'\n')
+  cat("  相对残差:",'\n',"         ",round(r_e,8),'\n','\n')
+  cat("  残差平方和 =",sum(e^2),'\n')
+  cat("  平均相对误差 =", e_average*100,"%",'\n','\n')
+  cat("  相对精度 =",(1 - e_average)*100,"%",'\n')
+
+  if (((1 - e_average)*100) > 0.9)  cat("  模型精确度较高，通过残差检验",'\n','\n')
+  else   {cat("  模型精确度未高于90%，残差检验未通过",'\n','\n')
+         break }
+   
+# 第六步，开始进行关联度检验
+
+  cat("开始进行关联度检验：",'\n')
+  
+  pho <- 0.5
+  eta <-numeric(length(X0))
+  for (i in 1:length(X0)){                      # 计算关联系数序列 eta
+    eta[i] <- (min(abs(e))+pho*max(abs(e)))/((abs(e))[i]+pho*max(abs(e)))}  
+
+  r <- round(mean(eta),2)                       # 计算关联度 r
+
+# 输出关联度检验的结果
+
+  cat("  关联度为:r =",r,'\n')
+
+  if(r > 0.55)  cat("  满足 pho=0.5 时的检验准则 r>0.55，通过关联度检验",'\n','\n')
+  else          {cat("  未通过关联度检验",'\n')
+                break }
+  
+# 第七步，开始进行后验差比值检验
+
+  cat("开始进行后验差检验：",'\n')
+
+  eavge <- mean(abs(e))                          
+  esum  <- sum((abs(e)-eavge)^2)
+  evar  <- esum/(length(e)-1)
+  se    <- sqrt(evar)                            # 计算绝对误差的标准差 se
+
+  X0avge <- mean(X0)
+  X0sum  <- sum((X0-X0avge)^2)
+  X0var  <- X0sum/(length(X0)-1)
+  sx     <- sqrt(X0var)                          # 计算原序列X0的标准差sx
+
+  c_value <- se/sx                                    # 计算后验差比值 c_value
+
+  S0 <- sum((abs(e)-eavge)<0.6745*sx)/length(e)          #计算小误差概率 S0
+
+# 输出后验差检验的结果
+
+  cat("  原始序列X0的标准差=",sx,'\n')
+  cat("  绝对误差的标准差=",se,'\n')
+  cat("  C值=",c_value,'\n')
+  cat("  小误差概率:P值=",S0,'\n')
+  
+  if(c_value < 0.35 && S0 > 0.95){     
+    cat("  C<0.35, P>0.95,GM(1,1)预测精度等级为：好，通过后验差检验",'\n','\n')
+  }else if(c_value < 0.5 && S0 > 0.80){
+    cat("  C值属于[0.35,0.5), P>0.80,GM(1,1)模型预测精度等级为：合格，通过后验差检验",'\n','\n')
+  }else if(c_value < 0.65 && S0 > 0.70){
+    cat("  C值属于[0.5,0.65), P>0.70,GM(1,1)模型预测精度等级为：勉强合格，通过后验差检验",'\n','\n')
+  }else{
+    cat("  C值>=0.65, GM(1,1)模型预测精度等级为：不合格，未通过后验差检验",'\n','\n')
+    break
+  }
+
+# 第八步，画出输入预测序列Xhat0与原始序列X0的比较图像
+
+  plot(Xhat0,col='blue',type='b',pch=16,xlab='时间序列',ylab='值')
+  points(X0,col='red',type='b',pch=4)
+  legend("topleft",c('原始','预测'),title = "原始序列与预测序列的对比",pch=c(16,4),lty=l,col=c('red','blue'))
+      
+# 第九步，求出第k期的预测值 Xhat0[k]
+
+  Xhat1[k]   <- (X0[1]-u/a)*exp(-a*(k-1))+u/a 
+  Xhat1[k-1] <- (X0[1]-u/a)*exp(-a*(k-2))+u/a
+  Xhat0[k]   <-  Xhat1[k]-Xhat1[k-1]
+
+  cat("第",k,"期的预测值为:",Xhat0[k],'\n')
+
+}
+
+# 应用：设有一时间序列数据如下所示，试预测2016年（第8期）的数据
+#         时间	2009	2010	2011	2012	2013	2014
+#         X(0)	43.45	47.05	52.75	57.14	62.64	68.52
+
+x <- c(43.45,47.05,52.75,57.14,62.64,68.52)
+GM11(x,length(x),8)
