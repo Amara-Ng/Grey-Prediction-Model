@@ -9,7 +9,7 @@ GM11 <- function(X0,t,k){
   cat('\n')
   cat("为弱化原始时间序列的随机性，采用累加的方式处理数据",'\n','\n')
 
-  options(scipen = 200)                   # 此处是为了能让数据常规显示，而不是使用科学记数法
+  options(scipen = 200)                           # 此处是为了能让数据常规显示，而不是使用科学记数法
   
   X1 <- cumsum(X0)
 
@@ -34,11 +34,11 @@ GM11 <- function(X0,t,k){
 
 # 第三步，开始计算待估参数向量 alpha2，利用最小二乘法求解，以便获得发展灰数 a 和内生控制灰数 u
 
-  alpha <- solve(t(B)%*%B)%*%t(B)%*%YN                 # 计算方法
-  alpha2 <- matrix(alpha,ncol=1)             # 将结果变成一列
+  alpha <- solve(t(B)%*%B)%*%t(B)%*%YN            # 计算公式
+  alpha2 <- matrix(alpha,ncol=1)                  # 将结果变成一列
   
-  a <- alpha2[1]                             # 发展灰数
-  u <- alpha2[2]                             # 内生控制灰数
+  a <- alpha2[1]                                  # 发展灰数
+  u <- alpha2[2]                                  # 内生控制灰数
   
 # 输出参数估计值：发展灰数 a 和内生控制灰数 u
   
@@ -47,15 +47,15 @@ GM11 <- function(X0,t,k){
 # 第四步，开始计算 X(0) & X(1) 的预测序列
 
   Xhat1 <- numeric(length(c(1:t)))
-  Xhat1[1] <- X1[1]                          # X(1)的预测序列中的第一个数与原始序列相同
+  Xhat1[1] <- X1[1]                               # X(1)的预测序列中的第一个数与原始序列相同
 
-  for(i in 1:(t-1)){                         # 求解微分方程，得预测模型 Xhat1[i+1]，计算 X(1)的预测序列
+  for(i in 1:(t-1)){                              # 求解微分方程，得预测模型 Xhat1[i+1]，计算 X(1)的预测序列
      Xhat1[i+1] <- (X0[1]-u/a)*exp(-a*i)+u/a }
   
   Xhat0 <- numeric(length(Xhat1))
   Xhat0[1] <- Xhat1[1]
 
-  for(o in 2:t){                             # 把 X(1)的预测序列进行累减，求出 X(0)的预测序列  
+  for(o in 2:t){                                  # 把 X(1)的预测序列进行累减，求出 X(0)的预测序列  
      Xhat0[o] <- Xhat1[o]-Xhat1[o-1] }
 
 # 输出预测序列
@@ -70,13 +70,13 @@ GM11 <- function(X0,t,k){
 
   e <- numeric(length(X0))
   for(l in 1:length(X0)){
-    e[l] <- X0[l]-Xhat0[l] }                  # 计算残差序列 e（未取绝对值）
+    e[l] <- X0[l]-Xhat0[l] }                      # 计算残差序列 e（未取绝对值）
  
   r_e <- numeric(length(X0))
   for(s in 1:length(X0)){
-    r_e[s] <- (abs(e[s])/X0[s])}              # 计算相对误差序列 r_e ,相对误差 = 绝对误差/原始序列
-  
-  e_average <- sum(r_e)/(length(r_e)-1)       # 计算平均相对误差 e_average
+    r_e[s] <- (abs(e[s])/X0[s])}                  # 计算相对误差序列 r_e ,相对误差 = 绝对误差/原始序列
+   
+  e_average <- sum(r_e)/(length(r_e)-1)           # 计算平均相对误差 e_average
 
 # 输出残差检验的结果
 
@@ -96,10 +96,10 @@ GM11 <- function(X0,t,k){
   
   pho <- 0.5
   eta <-numeric(length(X0))
-  for (i in 1:length(X0)){                      # 计算关联系数序列 eta
+  for (i in 1:length(X0)){                         # 计算关联系数序列 eta
     eta[i] <- (min(abs(e))+pho*max(abs(e)))/((abs(e))[i]+pho*max(abs(e)))}  
 
-  r <- round(mean(eta),2)                       # 计算关联度 r
+  r <- round(mean(eta),2)                          # 计算关联度 r
 
 # 输出关联度检验的结果
 
@@ -116,16 +116,16 @@ GM11 <- function(X0,t,k){
   eavge <- mean(abs(e))                          
   esum  <- sum((abs(e)-eavge)^2)
   evar  <- esum/(length(e)-1)
-  se    <- sqrt(evar)                            # 计算绝对误差的标准差 se
+  se    <- sqrt(evar)                              # 计算绝对误差的标准差 se
 
   X0avge <- mean(X0)
   X0sum  <- sum((X0-X0avge)^2)
   X0var  <- X0sum/(length(X0)-1)
-  sx     <- sqrt(X0var)                          # 计算原序列X0的标准差sx
+  sx     <- sqrt(X0var)                            # 计算原序列X0的标准差sx
 
-  c_value <- se/sx                                    # 计算后验差比值 c_value
+  c_value <- se/sx                                 # 计算后验差比值 c_value
 
-  S0 <- sum((abs(e)-eavge)<0.6745*sx)/length(e)          #计算小误差概率 S0
+  S0 <- sum((abs(e)-eavge)<0.6745*sx)/length(e)    # 计算小误差概率 S0
 
 # 输出后验差检验的结果
 
@@ -162,6 +162,7 @@ GM11 <- function(X0,t,k){
 }
 
 # 应用：设有一时间序列数据如下所示，试预测2016年（第8期）的数据
+
 #         时间	2009	2010	2011	2012	2013	2014
 #         X(0)	43.45	47.05	52.75	57.14	62.64	68.52
 
