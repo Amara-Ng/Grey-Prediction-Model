@@ -18,10 +18,10 @@ GM11 <- function(X0,t,k){
 
 # 第二步，开始构造矩阵 B 和数据向量 Yn
 
-  b <- numeric(length(X0)-1)              # 初始化长度为length(X0)-1的整数部分个numeric类型且值为0的数据集b
+  b <- numeric(length(X0)-1)             
   n <- length(X0)-1
-                                          # n 长度为 length(X0)-1 因为需要生成MEAN（紧邻均值）生成序列 其长度少1
-  for(i in 1:n){                          # 生成 X(1) 的紧邻均值序列
+                                     
+  for(i in 1:n){                         
     b[i] <- -(X1[i]+X1[i+1])/2 
     b }
 
